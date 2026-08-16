@@ -1391,6 +1391,39 @@ const helpSections = [
   },
 ];
 
+// ---------- SETTINGS ----------
+const textScaleOptions = [
+  { id: "small", label: "Small", zoom: 1.0 },
+  { id: "medium", label: "Medium", zoom: 1.12 },
+  { id: "large", label: "Large", zoom: 1.28 },
+];
+let textScale = localStorage.getItem("orthoAssistTextScale") || "medium";
+
+function applyTextScale() {
+  const opt = textScaleOptions.find((o) => o.id === textScale) || textScaleOptions[1];
+  app.style.zoom = opt.zoom;
+}
+
+function renderSettings() {
+  screenTitle.textContent = "Settings";
+  let html = `<div class="sectionLabel">Text size</div><div class="selectGrid">`;
+  textScaleOptions.forEach((o) => {
+    const sel = textScale === o.id ? "selected" : "";
+    html += `<button class="optRow ${sel}" data-textscale="${o.id}"><span>${o.label}</span><span class="check">${sel ? ICONS.check : ""}</span></button>`;
+  });
+  html += `</div>
+    <div class="disclaimer">More settings \u2014 dark mode, auto theme, and others \u2014 are planned here as the app grows.</div>`;
+  app.innerHTML = html;
+  applyTextScale();
+  app.querySelectorAll("[data-textscale]").forEach((row) => {
+    row.addEventListener("click", () => {
+      textScale = row.dataset.textscale;
+      localStorage.setItem("orthoAssistTextScale", textScale);
+      renderSettings();
+    });
+  });
+}
+
 function renderHelp() {
   screenTitle.textContent = "How to use this app";
   let html = "";
@@ -1553,6 +1586,7 @@ function render() {
   else if (currentScreen === "ward") renderWard();
   else if (currentScreen === "search") renderSearch();
   else if (currentScreen === "help") renderHelp();
+  else if (currentScreen === "settings") renderSettings();
   else if (currentScreen === "classifications") renderTopicScreen(classificationsTopics, "classifications", "Classifications");
 }
 
@@ -1608,12 +1642,21 @@ function renderAppHome() {
         <div class="desc">Quick guide to the OPD flow, Rehab trackers, and search</div>
       </div>
       <div class="chev">${ICONS.chevRight}</div>
+    </button>
+    <button class="homeCard c-amber" id="goSettings">
+      <div class="iconBadge">${ICONS.grid}</div>
+      <div style="flex:1;">
+        <div class="title">Settings</div>
+        <div class="desc">Text size \u2014 more options coming</div>
+      </div>
+      <div class="chev">${ICONS.chevRight}</div>
     </button>`;
   app.innerHTML = html;
   app.querySelectorAll("[data-region]").forEach((btn) => {
     btn.addEventListener("click", () => setScreen("home"));
   });
   document.getElementById("goHelp").addEventListener("click", () => setScreen("help"));
+  document.getElementById("goSettings").addEventListener("click", () => setScreen("settings"));
 
   const index = buildSearchIndex();
   const input = document.getElementById("homeSearchInput");
@@ -2077,6 +2120,7 @@ function bindRehabHandlers() {
 }
 
 // ---------- INIT ----------
+applyTextScale();
 render();
 
 if ("serviceWorker" in navigator) {
