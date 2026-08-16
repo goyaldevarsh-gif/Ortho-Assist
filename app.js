@@ -10,6 +10,8 @@ const ICONS = {
   pill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="15" height="15" rx="7.5" transform="rotate(45 12 12)"/><line x1="8.5" y1="15.5" x2="15.5" y2="8.5"/></svg>',
   droplet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5s7 7.5 7 12.5a7 7 0 01-14 0c0-5 7-12.5 7-12.5z"/></svg>',
   scalpel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-6"/><path d="M9 15L20 4a1.5 1.5 0 00-2-2L7 13"/><path d="M7 13l2 2"/></svg>',
+  searchSmall: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>',
 };
 function flagIcon(flag) {
   if (flag === "red" || flag === "amber") return ICONS.alertTriangle;
@@ -939,7 +941,18 @@ const normalVariants = [
   { name: "Bare area", app: "Posterosuperior humeral head lacking cartilage \u2014 universal", rule: "Don't mistake for Hill-Sachs (SCOI point 6)." },
 ];
 
+const openApproaches = [
+  { name: "Deltopectoral approach", use: "The workhorse approach \u2014 arthroplasty, open Bankart/Latarjet, proximal humerus ORIF.", interval: "Deltoid (axillary n.) vs pectoralis major (medial/lateral pectoral n.) \u2014 a true internervous plane.", landmark: "Cephalic vein marks the interval; kept either medially or laterally per surgeon preference.", risk: "Axillary nerve \u2014 runs inferiorly around subscapularis, at risk during inferior capsular work. Musculocutaneous nerve \u2014 enters the conjoint tendon ~5\u20138cm from the coracoid tip, at risk with aggressive medial retraction." },
+  { name: "Superior / deltoid-splitting approach", use: "Mini-open rotator cuff repair, some proximal humerus fixation via a limited exposure.", interval: "Splits deltoid fibers directly (not a true internervous plane \u2014 within the same muscle).", landmark: "Split from the acromion edge, extended distally.", risk: "Axillary nerve \u2014 runs ~5\u20137cm below the lateral acromion edge on the deep surface of deltoid. STRICT limit: do not split deltoid more than ~5cm from the acromion without identifying the nerve directly." },
+  { name: "Posterior approach", use: "Posterior instability/glenoid work, posterior capsular procedures, select tumour resections.", interval: "Infraspinatus (suprascapular n.) vs teres minor (axillary n.) \u2014 internervous plane.", landmark: "Posterior border of deltoid, spine of scapula.", risk: "Suprascapular nerve \u2014 at risk at the spinoglenoid notch during medial dissection/retraction of infraspinatus." },
+  { name: "Rotator interval approach", use: "Open capsular release, some biceps/SLAP-adjacent procedures, superior capsule work.", interval: "Between supraspinatus and subscapularis, through the rotator interval tissue itself.", landmark: "Coracoid process as the medial reference point.", risk: "Biceps tendon runs directly through this interval \u2014 identify and protect early." },
+];
+
 const surgicalTopics = [
+  {
+    id: "openapproaches", title: "Open surgical approaches",
+    render: () => openApproaches.map(a => `<div class="refItem"><div class="refItemTitle">${a.name}</div><div class="refItemBody"><b>Use:</b> ${a.use}<br><b>Interval:</b> ${a.interval}<br><b>Landmark:</b> ${a.landmark}<br><b>At risk:</b> ${a.risk}</div></div>`).join(""),
+  },
   {
     id: "latarjet", title: "Latarjet procedure",
     render: () => `<div class="refItem"><div class="refItemBody">Triple-blocking effect: (1) bone block extends the glenoid arc \u2014 static; (2) conjoint tendon sling \u2014 dynamic, taut specifically in ABER, the exact position of dislocation risk; (3) capsular repair to the coracoid stump \u2014 static.</div></div>`
@@ -1248,6 +1261,113 @@ const imagingScenarios = [
   { scenario: "Calcific tendinitis", first: "X-ray to confirm + locate the deposit; USG to assess consistency (creamy vs chalky) before deciding barbotage vs ESWT." },
 ];
 
+// ---------- WARD (brief) ----------
+// ---------- SEARCH ----------
+function buildSearchIndex() {
+  const idx = [];
+  const topicScreens = [
+    { arr: conditionsTopics, screenId: "conditions", screenKey: "conditions", moduleLabel: "Conditions" },
+    { arr: mriTopics, screenId: "mri", screenKey: "mri", moduleLabel: "MRI reading" },
+    { arr: injectionTopics, screenId: "injections", screenKey: "injections", moduleLabel: "Injections" },
+    { arr: surgicalTopics, screenId: "surgical", screenKey: "surgical", moduleLabel: "Surgical techniques" },
+    { arr: arthroscopyTopics, screenId: "arthroscopy", screenKey: "arthroscopy", moduleLabel: "Arthroscopy" },
+    { arr: classificationsTopics, screenId: "classifications", screenKey: "classifications", moduleLabel: "Classifications" },
+    { arr: managementTopics, screenId: "management", screenKey: "management", moduleLabel: "Management protocols" },
+    { arr: referenceTopics, screenId: "eponyms", screenKey: "eponyms", moduleLabel: "References" },
+    { arr: imagingModalityTopics, screenId: "imaging", screenKey: "imaging", moduleLabel: "Imaging guide" },
+  ];
+  topicScreens.forEach((ts) => {
+    ts.arr.forEach((t) => {
+      idx.push({ label: t.title, moduleLabel: ts.moduleLabel, screenId: ts.screenId, screenKey: ts.screenKey, topicId: t.id });
+    });
+  });
+  rehabOptions.forEach((o) => {
+    idx.push({ label: o.label, moduleLabel: "Rehab", screenId: "postop", rehabId: o.id });
+  });
+  romPatterns.forEach((p) => {
+    p.diagnoses.forEach((d) => {
+      idx.push({ label: d.name, moduleLabel: "OPD \u2014 examination", screenId: "opd", patternId: p.id });
+    });
+  });
+  instabilityDiagnoses.forEach((d) => {
+    idx.push({ label: d.name, moduleLabel: "OPD \u2014 instability", screenId: "opd", instabilityFlag: true });
+  });
+  return idx;
+}
+
+function goToSearchResult(item) {
+  setScreen(item.screenId);
+  if (item.screenKey && item.topicId) expandedTopicByScreen[item.screenKey] = item.topicId;
+  if (item.rehabId) {
+    selectedRehab = item.rehabId;
+    currentWeek = 0;
+    selectedIrritability = null;
+  }
+  if (item.patternId) selectedPattern = item.patternId;
+  if (item.instabilityFlag) screenState.instability = true;
+  render();
+}
+
+function renderSearch() {
+  screenTitle.textContent = "Search";
+  const index = buildSearchIndex();
+  app.innerHTML = `
+    <input type="text" id="searchInput" placeholder="Search tests, conditions, protocols\u2026" autofocus
+      style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--surface);font-size:15px;margin-bottom:14px;" />
+    <div id="searchResultsBox"></div>`;
+  const input = document.getElementById("searchInput");
+  const resultsBox = document.getElementById("searchResultsBox");
+
+  function renderResults(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      resultsBox.innerHTML = `<div class="emptyHint">Start typing to search across every module</div>`;
+      return;
+    }
+    const matches = index.filter((it) => it.label.toLowerCase().includes(q));
+    if (matches.length === 0) {
+      resultsBox.innerHTML = `<div class="emptyHint">No matches for \u201c${query}\u201d</div>`;
+      return;
+    }
+    resultsBox.innerHTML = matches.slice(0, 40).map((m, i) => `
+      <button class="testRow" data-searchidx="${i}">
+        <span>${m.label}<span class="sub" style="display:block;">${m.moduleLabel}</span></span>
+        <span class="chev">${ICONS.chevRight}</span>
+      </button>`).join("");
+    resultsBox.querySelectorAll("[data-searchidx]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        goToSearchResult(matches[parseInt(btn.dataset.searchidx, 10)]);
+      });
+    });
+  }
+
+  renderResults("");
+  input.addEventListener("input", (e) => renderResults(e.target.value));
+}
+
+function renderWard() {
+  screenTitle.textContent = "Ward";
+  const html = `
+    <div class="sectionLabel">Pre-op</div>
+    <div class="refBox">
+      <div class="refItem"><div class="refItemBody">Consent taken, correct side marked and confirmed with the patient.</div></div>
+      <div class="refItem"><div class="refItemBody">NPO status confirmed per anaesthesia timing.</div></div>
+      <div class="refItem"><div class="refItemBody">Anticoagulants/antiplatelets stopped per protocol; document last dose.</div></div>
+      <div class="refItem"><div class="refItemBody">Antibiotic prophylaxis timed within 60 minutes of incision.</div></div>
+      <div class="refItem"><div class="refItemBody">Regional block coordinated with anaesthesia \u2014 document baseline neuro exam BEFORE the block.</div></div>
+    </div>
+    <div class="sectionLabel">Post-op</div>
+    <div class="refBox">
+      <div class="refItem"><div class="refItemBody">Neurovascular check (axillary nerve \u2014 deltoid sensation/contraction) on arrival to ward and before discharge.</div></div>
+      <div class="refItem"><div class="refItemBody">Pain control \u2014 regional block wearing off is the usual pain spike; have oral analgesia bridging ready, don't wait for the patient to ask.</div></div>
+      <div class="refItem"><div class="refItemBody">Sling fit and patient understanding of it confirmed before they leave the ward.</div></div>
+      <div class="refItem"><div class="refItemBody">Wound/dressing checked; document any drain output.</div></div>
+      <div class="refItem"><div class="refItemBody">Discharge criteria: pain controlled on oral analgesia, understands precautions for the specific procedure (see Rehab), follow-up appointment booked.</div></div>
+    </div>
+    <div class="disclaimer">Deliberately brief \u2014 adapt to local ward protocol.</div>`;
+  app.innerHTML = html;
+}
+
 function renderImagingGuide() {
   screenTitle.textContent = "Imaging guide";
   let html = `<p style="font-size:13px;color:var(--text-2);margin-bottom:14px;">By modality, then a quick scenario lookup</p>`;
@@ -1325,6 +1445,7 @@ const app = document.getElementById("app");
 const screenTitle = document.getElementById("screenTitle");
 const backBtn = document.getElementById("backBtn");
 const homeBtn = document.getElementById("homeBtn");
+const searchBtn = document.getElementById("searchBtn");
 
 let screenStack = ["app-home"];
 
@@ -1359,6 +1480,7 @@ function updateNavChrome() {
 
 backBtn.addEventListener("click", goBack);
 homeBtn.addEventListener("click", goHome);
+searchBtn.addEventListener("click", () => setScreen("search"));
 
 function render() {
   if (currentScreen === "app-home") renderAppHome();
@@ -1373,6 +1495,8 @@ function render() {
   else if (currentScreen === "eponyms") renderTopicScreen(referenceTopics, "eponyms", "References");
   else if (currentScreen === "management") renderTopicScreen(managementTopics, "management", "Management protocols");
   else if (currentScreen === "imaging") renderImagingGuide();
+  else if (currentScreen === "ward") renderWard();
+  else if (currentScreen === "search") renderSearch();
   else if (currentScreen === "classifications") renderTopicScreen(classificationsTopics, "classifications", "Classifications");
 }
 
@@ -1517,11 +1641,15 @@ function renderHome() {
       </div>
       <div class="chev">${ICONS.chevRight}</div>
     </button>
+    <button class="homeCard c-teal" id="goWard">
+      <div class="iconBadge">${ICONS.book}</div>
+      <div style="flex:1;">
+        <div class="title">Ward</div>
+        <div class="desc">Brief pre-op and post-op checkpoints</div>
+      </div>
+      <div class="chev">${ICONS.chevRight}</div>
+    </button>
     <div class="sectionLabel">Coming soon</div>
-    <div class="card" style="opacity:.5;box-shadow:none;">
-      <div style="font-weight:700;font-size:14px;margin-bottom:2px;">Ward checklists</div>
-      <div style="font-size:12.5px;color:var(--text-2);">Pre-op workup, consent points</div>
-    </div>
     <div class="card" style="opacity:.5;box-shadow:none;">
       <div style="font-weight:700;font-size:14px;margin-bottom:2px;">Spine \u2014 LBP & Trauma</div>
       <div style="font-size:12.5px;color:var(--text-2);">Next module</div>
@@ -1535,6 +1663,7 @@ function renderHome() {
   document.getElementById("goClassifications").addEventListener("click", () => setScreen("classifications"));
   document.getElementById("goManagement").addEventListener("click", () => setScreen("management"));
   document.getElementById("goImaging").addEventListener("click", () => setScreen("imaging"));
+  document.getElementById("goWard").addEventListener("click", () => setScreen("ward"));
   document.getElementById("goSurgical").addEventListener("click", () => setScreen("surgical"));
   document.getElementById("goArthroscopy").addEventListener("click", () => setScreen("arthroscopy"));
   document.getElementById("goEponyms").addEventListener("click", () => setScreen("eponyms"));
