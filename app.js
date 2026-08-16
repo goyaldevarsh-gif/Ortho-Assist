@@ -1404,21 +1404,61 @@ function applyTextScale() {
   app.style.zoom = opt.zoom;
 }
 
+const appearanceOptions = [
+  { id: "light", label: "Light" },
+  { id: "dark", label: "Dark" },
+  { id: "auto", label: "Auto", sub: "follows your device" },
+  { id: "reading", label: "Reading", sub: "warm sepia, larger line spacing" },
+];
+let appearance = localStorage.getItem("orthoAssistAppearance") || "auto";
+const darkMediaQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+function applyAppearance() {
+  let effective = appearance;
+  if (effective === "auto") {
+    effective = darkMediaQuery && darkMediaQuery.matches ? "dark" : "light";
+  }
+  if (effective === "light") {
+    document.documentElement.removeAttribute("data-theme");
+  } else {
+    document.documentElement.setAttribute("data-theme", effective);
+  }
+}
+if (darkMediaQuery) {
+  darkMediaQuery.addEventListener("change", () => {
+    if (appearance === "auto") applyAppearance();
+  });
+}
+
 function renderSettings() {
   screenTitle.textContent = "Settings";
-  let html = `<div class="sectionLabel">Text size</div><div class="selectGrid">`;
+  let html = `<div class="sectionLabel">Appearance</div><div class="selectGrid">`;
+  appearanceOptions.forEach((o) => {
+    const sel = appearance === o.id ? "selected" : "";
+    html += `<button class="optRow ${sel}" data-appearance="${o.id}"><span>${o.label}${o.sub ? `<span class="sub">${o.sub}</span>` : ""}</span><span class="check">${sel ? ICONS.check : ""}</span></button>`;
+  });
+  html += `</div>
+    <div class="sectionLabel">Text size</div><div class="selectGrid">`;
   textScaleOptions.forEach((o) => {
     const sel = textScale === o.id ? "selected" : "";
     html += `<button class="optRow ${sel}" data-textscale="${o.id}"><span>${o.label}</span><span class="check">${sel ? ICONS.check : ""}</span></button>`;
   });
   html += `</div>
-    <div class="disclaimer">More settings \u2014 dark mode, auto theme, and others \u2014 are planned here as the app grows.</div>`;
+    <div class="disclaimer">More settings are planned here as the app grows.</div>`;
   app.innerHTML = html;
   applyTextScale();
   app.querySelectorAll("[data-textscale]").forEach((row) => {
     row.addEventListener("click", () => {
       textScale = row.dataset.textscale;
       localStorage.setItem("orthoAssistTextScale", textScale);
+      renderSettings();
+    });
+  });
+  app.querySelectorAll("[data-appearance]").forEach((row) => {
+    row.addEventListener("click", () => {
+      appearance = row.dataset.appearance;
+      localStorage.setItem("orthoAssistAppearance", appearance);
+      applyAppearance();
       renderSettings();
     });
   });
@@ -1647,7 +1687,7 @@ function renderAppHome() {
       <div class="iconBadge">${ICONS.grid}</div>
       <div style="flex:1;">
         <div class="title">Settings</div>
-        <div class="desc">Text size \u2014 more options coming</div>
+        <div class="desc">Appearance (light/dark/auto/reading) and text size</div>
       </div>
       <div class="chev">${ICONS.chevRight}</div>
     </button>`;
@@ -2120,6 +2160,7 @@ function bindRehabHandlers() {
 }
 
 // ---------- INIT ----------
+applyAppearance();
 applyTextScale();
 render();
 
