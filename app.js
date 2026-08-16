@@ -1510,11 +1510,18 @@ const regions = [
 function renderAppHome() {
   screenTitle.textContent = "";
   let html = `
-    <div class="homeHero" style="text-align:center;padding-top:14px;">
-      <h2 style="font-size:26px;">Ortho Assist</h2>
-      <p>Course-handbook logic for the OPD, ward and OT \u2014 by region.</p>
+    <div class="brandHero">
+      <img src="icons/icon-512.png" alt="Ortho Assist logo" />
+      <h1>Ortho Assist</h1>
+      <div class="tagline">Diagnose &middot; Plan &middot; Treat &middot; Recover</div>
     </div>
-    <div class="sectionLabel">Regions</div>`;
+    <div class="searchBar">
+      ${ICONS.searchSmall}
+      <input type="text" id="homeSearchInput" placeholder="Search tests, conditions, protocols\u2026" />
+    </div>
+    <div id="homeSearchResultsBox"></div>
+    <div id="homeRegionsBox">
+      <div class="sectionLabel">Regions</div>`;
   regions.forEach((r) => {
     if (r.status === "active") {
       html += `
@@ -1537,18 +1544,50 @@ function renderAppHome() {
         </div>`;
     }
   });
+  html += `</div>`;
   app.innerHTML = html;
   app.querySelectorAll("[data-region]").forEach((btn) => {
     btn.addEventListener("click", () => setScreen("home"));
   });
+
+  const index = buildSearchIndex();
+  const input = document.getElementById("homeSearchInput");
+  const resultsBox = document.getElementById("homeSearchResultsBox");
+  const regionsBox = document.getElementById("homeRegionsBox");
+
+  function renderHomeResults(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      resultsBox.innerHTML = "";
+      regionsBox.style.display = "";
+      return;
+    }
+    regionsBox.style.display = "none";
+    const matches = index.filter((it) => it.label.toLowerCase().includes(q));
+    if (matches.length === 0) {
+      resultsBox.innerHTML = `<div class="emptyHint">No matches for \u201c${query}\u201d</div>`;
+      return;
+    }
+    resultsBox.innerHTML = matches.slice(0, 30).map((m, i) => `
+      <button class="testRow" data-searchidx="${i}">
+        <span>${m.label}<span class="sub" style="display:block;">${m.moduleLabel}</span></span>
+        <span class="chev">${ICONS.chevRight}</span>
+      </button>`).join("");
+    resultsBox.querySelectorAll("[data-searchidx]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        goToSearchResult(matches[parseInt(btn.dataset.searchidx, 10)]);
+      });
+    });
+  }
+  input.addEventListener("input", (e) => renderHomeResults(e.target.value));
 }
 
 function renderHome() {
-  screenTitle.textContent = "Shoulder Assist";
+  screenTitle.textContent = "Shoulder";
   app.innerHTML = `
     <div class="homeHero">
-      <h2>Shoulder</h2>
-      <p>Course-handbook logic, built for the OPD, ward and OT.</p>
+      <h2 style="font-weight:800;">Shoulder</h2>
+      <p>Evidence-based logic, built for the OPD, ward and OT.</p>
     </div>
     <div class="sectionLabel">Clinical workflow</div>
     <button class="homeCard c-teal" id="goOpd">

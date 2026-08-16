@@ -70,6 +70,7 @@ button{font-family:inherit;cursor:pointer;}
   z-index:20;
 }
 .topbar h1{font-size:18px;font-weight:700;}
+#topbarLogo{width:26px;height:26px;border-radius:7px;flex-shrink:0;box-shadow:0 1px 3px rgba(14,64,113,0.25);}
 .iconBtn{
   background:none;border:none;color:var(--text);
   width:36px;height:36px;display:flex;align-items:center;justify-content:center;
@@ -121,6 +122,39 @@ button{font-family:inherit;cursor:pointer;}
 }
 .homeHero h2{font-size:22px;margin-bottom:4px;}
 .homeHero p{font-size:13.5px;color:var(--text-2);}
+
+.brandHero{
+  background:linear-gradient(135deg, #0E4071 0%, #1670B8 100%);
+  border-radius:var(--radius-lg);
+  padding:28px 20px 24px;
+  text-align:center;
+  margin-bottom:18px;
+  box-shadow:0 4px 18px rgba(14,64,113,0.28);
+}
+.brandHero img{
+  width:64px;height:64px;border-radius:18px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.25);
+  margin-bottom:12px;
+}
+.brandHero h1{
+  color:#fff;font-size:24px;font-weight:800;letter-spacing:-0.02em;margin-bottom:3px;
+}
+.brandHero .tagline{
+  color:rgba(255,255,255,0.85);font-size:11.5px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;
+}
+.searchBar{
+  display:flex;align-items:center;gap:9px;
+  width:100%;padding:12px 14px;border-radius:14px;
+  border:1px solid var(--border);background:var(--surface);
+  margin-bottom:18px;box-shadow:var(--shadow-sm);
+}
+.searchBar svg{width:19px;height:19px;color:var(--text-3);flex-shrink:0;}
+.searchBar input{
+  border:none;outline:none;background:none;font-size:15px;color:var(--text);
+  flex:1;font-family:inherit;
+}
+.searchBar input::placeholder{color:var(--text-3);}
 
 .homeCard{
   display:flex;align-items:center;gap:14px;
@@ -309,6 +343,7 @@ button{font-family:inherit;cursor:pointer;}
   <button id="backBtn" class="iconBtn" aria-label="Back" hidden>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
+  <img src="icons/icon-192.png" alt="" id="topbarLogo" />
   <h1 id="screenTitle">Ortho Assist</h1>
   <div style="flex:1;"></div>
   <button id="searchBtn" class="iconBtn" aria-label="Search">
@@ -1835,11 +1870,18 @@ const regions = [
 function renderAppHome() {
   screenTitle.textContent = "";
   let html = `
-    <div class="homeHero" style="text-align:center;padding-top:14px;">
-      <h2 style="font-size:26px;">Ortho Assist</h2>
-      <p>Course-handbook logic for the OPD, ward and OT \u2014 by region.</p>
+    <div class="brandHero">
+      <img src="icons/icon-512.png" alt="Ortho Assist logo" />
+      <h1>Ortho Assist</h1>
+      <div class="tagline">Diagnose &middot; Plan &middot; Treat &middot; Recover</div>
     </div>
-    <div class="sectionLabel">Regions</div>`;
+    <div class="searchBar">
+      ${ICONS.searchSmall}
+      <input type="text" id="homeSearchInput" placeholder="Search tests, conditions, protocols\u2026" />
+    </div>
+    <div id="homeSearchResultsBox"></div>
+    <div id="homeRegionsBox">
+      <div class="sectionLabel">Regions</div>`;
   regions.forEach((r) => {
     if (r.status === "active") {
       html += `
@@ -1862,18 +1904,50 @@ function renderAppHome() {
         </div>`;
     }
   });
+  html += `</div>`;
   app.innerHTML = html;
   app.querySelectorAll("[data-region]").forEach((btn) => {
     btn.addEventListener("click", () => setScreen("home"));
   });
+
+  const index = buildSearchIndex();
+  const input = document.getElementById("homeSearchInput");
+  const resultsBox = document.getElementById("homeSearchResultsBox");
+  const regionsBox = document.getElementById("homeRegionsBox");
+
+  function renderHomeResults(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      resultsBox.innerHTML = "";
+      regionsBox.style.display = "";
+      return;
+    }
+    regionsBox.style.display = "none";
+    const matches = index.filter((it) => it.label.toLowerCase().includes(q));
+    if (matches.length === 0) {
+      resultsBox.innerHTML = `<div class="emptyHint">No matches for \u201c${query}\u201d</div>`;
+      return;
+    }
+    resultsBox.innerHTML = matches.slice(0, 30).map((m, i) => `
+      <button class="testRow" data-searchidx="${i}">
+        <span>${m.label}<span class="sub" style="display:block;">${m.moduleLabel}</span></span>
+        <span class="chev">${ICONS.chevRight}</span>
+      </button>`).join("");
+    resultsBox.querySelectorAll("[data-searchidx]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        goToSearchResult(matches[parseInt(btn.dataset.searchidx, 10)]);
+      });
+    });
+  }
+  input.addEventListener("input", (e) => renderHomeResults(e.target.value));
 }
 
 function renderHome() {
-  screenTitle.textContent = "Shoulder Assist";
+  screenTitle.textContent = "Shoulder";
   app.innerHTML = `
     <div class="homeHero">
-      <h2>Shoulder</h2>
-      <p>Course-handbook logic, built for the OPD, ward and OT.</p>
+      <h2 style="font-weight:800;">Shoulder</h2>
+      <p>Evidence-based logic, built for the OPD, ward and OT.</p>
     </div>
     <div class="sectionLabel">Clinical workflow</div>
     <button class="homeCard c-teal" id="goOpd">
