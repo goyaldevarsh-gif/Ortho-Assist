@@ -12,6 +12,16 @@ const ICONS = {
   scalpel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-6"/><path d="M9 15L20 4a1.5 1.5 0 00-2-2L7 13"/><path d="M7 13l2 2"/></svg>',
   searchSmall: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>',
+  stethoscope: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3v6a4.5 4.5 0 009 0V3"/><path d="M4.5 3h-2M13.5 3h-2"/><path d="M9 13.5V16a6 6 0 006 6 6 6 0 006-6v-1.5"/><circle cx="19.5" cy="9" r="2"/><path d="M19.5 11v2.5"/></svg>',
+  dumbbell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="9.5" width="3" height="5" rx="1"/><rect x="19.5" y="9.5" width="3" height="5" rx="1"/><line x1="4.5" y1="12" x2="19.5" y2="12"/><rect x="6.5" y="7" width="2.4" height="10" rx="1"/><rect x="15.1" y="7" width="2.4" height="10" rx="1"/></svg>',
+  bodyFigure: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2.3"/><path d="M12 7.5v6.5"/><path d="M7.5 11l4.5-2 4.5 2"/><path d="M8.5 21l3.5-7 3.5 7"/></svg>',
+  layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2.5 2.5 8 12 13.5 21.5 8 12 2.5"/><polyline points="2.5 15.5 12 21 21.5 15.5"/><polyline points="2.5 11.75 12 17.25 21.5 11.75"/></svg>',
+  syringe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l3.5-1 10-10-2.5-2.5-10 10L3 21z"/><path d="M13 8l3-3M16 5l3 3M10.5 10.5l2 2"/><path d="M17.5 3.5l3 3"/></svg>',
+  grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.3"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.3"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.3"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.3"/></svg>',
+  route: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.6"/><circle cx="18" cy="18" r="2.6"/><circle cx="18" cy="6" r="2.6"/><path d="M8.6 6h6.8M18 8.6V15.4"/></svg>',
+  scope: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="14.3" y1="8" x2="19.5" y2="17"/><line x1="9.7" y1="8" x2="20" y2="8"/><line x1="7.6" y1="12" x2="12.9" y2="3"/><line x1="9.7" y1="16" x2="4" y2="6.5"/><line x1="14.3" y1="16" x2="3.5" y2="16"/><line x1="16.4" y1="12" x2="11" y2="21"/></svg>',
+  imageScan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M21 15.5l-5.3-5.3a1.5 1.5 0 00-2.1 0L3 20.5"/></svg>',
+  bed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 19.5v-7a2 2 0 012-2h15a2 2 0 012 2v7"/><path d="M2.5 19.5v-2.8a1 1 0 011-1h17a1 1 0 011 1v2.8"/><path d="M6 10.5V7a2 2 0 012-2h2.5"/><circle cx="7" cy="8.5" r="1"/></svg>',
 };
 function flagIcon(flag) {
   if (flag === "red" || flag === "amber") return ICONS.alertTriangle;
@@ -1345,6 +1355,51 @@ function renderSearch() {
   input.addEventListener("input", (e) => renderResults(e.target.value));
 }
 
+// ---------- HELP GUIDE ----------
+const helpSections = [
+  {
+    title: "What this app is",
+    body: "Ortho Assist is a clinical decision-support and reference tool for the OPD, ward, and OT \u2014 organised by anatomical region (Shoulder is live; more regions are planned). Content is built from a course handbook and published, evidence-based orthopaedic literature. It is designed to speed up and structure real clinical decisions, not to replace clinical judgement or a surgeon's discretion.",
+  },
+  {
+    title: "The OPD flow \u2014 start to finish",
+    body: "Open Shoulder \u2192 OPD examination. The screen is built as one continuous flow: (1) optionally expand the History checklist and Examination technique reference at the top, (2) select the patient's age bracket \u2014 it shifts the differential, (3) tick any Screening red flags, (4) select the ROM pattern found on exam (both restricted / passive full / both full / IR alone restricted), (5) each pattern shows its differentials, and each differential lists its own special tests. Tap a test's name to see how to perform it, what a positive finding looks like, and what it means. Tap the + or \u2212 button next to a test to record the actual result on your patient \u2014 this immediately narrows the working differential shown at the top and marks that diagnosis \u201cSupported\u201d or \u201cUnlikely.\u201d Once a diagnosis is Supported, a \u201c\u2192 Management\u201d button appears beneath it \u2014 tap it to see Education, Pharmacological, Rehab, Injection, and Surgery guidance for that specific diagnosis, all in one place, without leaving the screen.",
+  },
+  {
+    title: "Recorded results and starting a new patient",
+    body: "Test results you record stay on screen as you work through a consultation, but are NOT saved between browser sessions (there is currently no patient-data storage). Use the \u201cReset recorded results \u2014 new patient\u201d link at the bottom of the OPD screen before seeing your next patient.",
+  },
+  {
+    title: "Rehab & exercise Rx",
+    body: "Select a protocol (rotator cuff repair, arthroplasty, Bankart, SLAP/DTS, post-MUA, impingement, or frozen shoulder). Phase-based protocols show a week slider \u2014 drag it to the patient's current week post-op/post-injury and the relevant phase, precautions, and exercises update live. Each phase-based protocol also carries an \u201cEvidence note\u201d flagging where the timing is genuinely debated in the literature. \u201cRehab principles\u201d covers how to adapt any of these week-based frameworks to an individual patient rather than following them rigidly.",
+  },
+  {
+    title: "Reference modules (Conditions, MRI, Injections, Classifications, Management, Surgical, Arthroscopy, References, Imaging guide)",
+    body: "Each of these is a simple tap-to-expand list. Tap a topic's title to open it, tap again to close it. They're meant for quick lookup mid-consultation or mid-case, not sequential reading.",
+  },
+  {
+    title: "Search",
+    body: "The search bar on the home dashboard (and the search icon in the top bar on every other screen) searches test names, diagnoses, rehab protocols, and every reference topic across the whole app at once. Tap any result to jump straight there \u2014 if it's a reference topic, it opens already expanded; if it's an OPD diagnosis, it takes you to the OPD screen with that ROM pattern already selected.",
+  },
+  {
+    title: "Navigation",
+    body: "There's no bottom tab bar by design \u2014 use the back arrow (top-left) to go up one level, or the home icon (top-right) to jump straight back to the region-select dashboard from anywhere.",
+  },
+  {
+    title: "A note on evidence and limitations",
+    body: "Content is paraphrased from course material and published literature, not copied verbatim from any textbook. Where the evidence is genuinely mixed or protocols vary widely between institutions (e.g. shoulder arthroplasty rehab timing), the app says so explicitly rather than presenting a single number as settled fact. This app does not store any patient-identifiable information \u2014 recorded test results live only in the browser's memory for the current session.",
+  },
+];
+
+function renderHelp() {
+  screenTitle.textContent = "How to use this app";
+  let html = "";
+  helpSections.forEach((s) => {
+    html += `<div class="refBox" style="margin-bottom:12px;"><div class="refItem"><div class="refItemTitle" style="font-size:14.5px;">${s.title}</div><div class="refItemBody">${s.body}</div></div></div>`;
+  });
+  app.innerHTML = html;
+}
+
 function renderWard() {
   screenTitle.textContent = "Ward";
   const html = `
@@ -1497,6 +1552,7 @@ function render() {
   else if (currentScreen === "imaging") renderImagingGuide();
   else if (currentScreen === "ward") renderWard();
   else if (currentScreen === "search") renderSearch();
+  else if (currentScreen === "help") renderHelp();
   else if (currentScreen === "classifications") renderTopicScreen(classificationsTopics, "classifications", "Classifications");
 }
 
@@ -1526,7 +1582,7 @@ function renderAppHome() {
     if (r.status === "active") {
       html += `
         <button class="homeCard c-teal" data-region="${r.id}">
-          <div class="iconBadge">${ICONS.search}</div>
+          <div class="iconBadge">${ICONS.bodyFigure}</div>
           <div style="flex:1;">
             <div class="title">${r.name}</div>
             <div class="desc">${r.desc}</div>
@@ -1544,11 +1600,20 @@ function renderAppHome() {
         </div>`;
     }
   });
-  html += `</div>`;
+  html += `</div>
+    <button class="homeCard c-amber" id="goHelp" style="margin-top:6px;">
+      <div class="iconBadge">${ICONS.info}</div>
+      <div style="flex:1;">
+        <div class="title">How to use this app</div>
+        <div class="desc">Quick guide to the OPD flow, Rehab trackers, and search</div>
+      </div>
+      <div class="chev">${ICONS.chevRight}</div>
+    </button>`;
   app.innerHTML = html;
   app.querySelectorAll("[data-region]").forEach((btn) => {
     btn.addEventListener("click", () => setScreen("home"));
   });
+  document.getElementById("goHelp").addEventListener("click", () => setScreen("help"));
 
   const index = buildSearchIndex();
   const input = document.getElementById("homeSearchInput");
@@ -1591,7 +1656,7 @@ function renderHome() {
     </div>
     <div class="sectionLabel">Clinical workflow</div>
     <button class="homeCard c-teal" id="goOpd">
-      <div class="iconBadge">${ICONS.search}</div>
+      <div class="iconBadge">${ICONS.stethoscope}</div>
       <div style="flex:1;">
         <div class="title">OPD examination</div>
         <div class="desc">Red flags \u2192 ROM-pattern algorithm \u2192 special tests</div>
@@ -1599,7 +1664,7 @@ function renderHome() {
       <div class="chev">${ICONS.chevRight}</div>
     </button>
     <button class="homeCard c-teal" id="goPostop">
-      <div class="iconBadge">${ICONS.refresh}</div>
+      <div class="iconBadge">${ICONS.dumbbell}</div>
       <div style="flex:1;">
         <div class="title">Rehab & exercise Rx</div>
         <div class="desc">Bankart, SLAP/DTS, impingement, frozen shoulder</div>
@@ -1608,7 +1673,7 @@ function renderHome() {
     </button>
     <div class="sectionLabel">Reference library</div>
     <button class="homeCard c-amber" id="goConditions">
-      <div class="iconBadge">${ICONS.info}</div>
+      <div class="iconBadge">${ICONS.bodyFigure}</div>
       <div style="flex:1;">
         <div class="title">Conditions</div>
         <div class="desc">Bankart variants, CTA, instability matrix, barbotage, LPD</div>
@@ -1616,7 +1681,7 @@ function renderHome() {
       <div class="chev">${ICONS.chevRight}</div>
     </button>
     <button class="homeCard c-amber" id="goMri">
-      <div class="iconBadge">${ICONS.info}</div>
+      <div class="iconBadge">${ICONS.layers}</div>
       <div style="flex:1;">
         <div class="title">MRI reading</div>
         <div class="desc">Signal rules, magic angle, axial/sagittal/coronal checklists</div>
@@ -1624,7 +1689,7 @@ function renderHome() {
       <div class="chev">${ICONS.chevRight}</div>
     </button>
     <button class="homeCard c-amber" id="goInjections">
-      <div class="iconBadge">${ICONS.info}</div>
+      <div class="iconBadge">${ICONS.syringe}</div>
       <div style="flex:1;">
         <div class="title">Injections</div>
         <div class="desc">Steroid choice, needle technique, condition\u2192space matching</div>
@@ -1632,7 +1697,7 @@ function renderHome() {
       <div class="chev">${ICONS.chevRight}</div>
     </button>
     <button class="homeCard c-amber" id="goClassifications">
-      <div class="iconBadge">${ICONS.info}</div>
+      <div class="iconBadge">${ICONS.grid}</div>
       <div style="flex:1;">
         <div class="title">Classifications</div>
         <div class="desc">Neer (proximal humerus #), Rockwood (AC joint), Walch (glenoid)</div>
@@ -1640,7 +1705,7 @@ function renderHome() {
       <div class="chev">${ICONS.chevRight}</div>
     </button>
     <button class="homeCard c-amber" id="goManagement">
-      <div class="iconBadge">${ICONS.info}</div>
+      <div class="iconBadge">${ICONS.route}</div>
       <div style="flex:1;">
         <div class="title">Management protocols</div>
         <div class="desc">Full conservative\u2192surgical pathway: cuff tear, AC injury, instability, calcific tendinitis</div>
@@ -1648,7 +1713,7 @@ function renderHome() {
       <div class="chev">${ICONS.chevRight}</div>
     </button>
     <button class="homeCard c-amber" id="goImaging">
-      <div class="iconBadge">${ICONS.info}</div>
+      <div class="iconBadge">${ICONS.imageScan}</div>
       <div style="flex:1;">
         <div class="title">Imaging guide</div>
         <div class="desc">X-ray vs USG vs MRI vs CT \u2014 by modality and by clinical scenario</div>
@@ -1657,7 +1722,7 @@ function renderHome() {
     </button>
     <div class="sectionLabel">OT reference</div>
     <button class="homeCard c-amber" id="goSurgical">
-      <div class="iconBadge">${ICONS.info}</div>
+      <div class="iconBadge">${ICONS.scalpel}</div>
       <div style="flex:1;">
         <div class="title">Surgical techniques</div>
         <div class="desc">Latarjet, glenoplasty, RC repair, tenodesis, knots, portals</div>
@@ -1665,7 +1730,7 @@ function renderHome() {
       <div class="chev">${ICONS.chevRight}</div>
     </button>
     <button class="homeCard c-amber" id="goArthroscopy">
-      <div class="iconBadge">${ICONS.info}</div>
+      <div class="iconBadge">${ICONS.scope}</div>
       <div style="flex:1;">
         <div class="title">Arthroscopy</div>
         <div class="desc">SCOI 15-point survey, portals, normal variants</div>
@@ -1673,7 +1738,7 @@ function renderHome() {
       <div class="chev">${ICONS.chevRight}</div>
     </button>
     <button class="homeCard c-amber" id="goEponyms">
-      <div class="iconBadge">${ICONS.info}</div>
+      <div class="iconBadge">${ICONS.book}</div>
       <div style="flex:1;">
         <div class="title">References</div>
         <div class="desc">Must-read papers + eponym lookup</div>
