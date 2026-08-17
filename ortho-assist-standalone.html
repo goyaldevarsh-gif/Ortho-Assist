@@ -404,6 +404,15 @@ button{font-family:inherit;cursor:pointer;}
   background:var(--surface-2);color:var(--text-2);
 }
 
+.formInput{
+  display:block;width:100%;padding:11px 13px;border-radius:var(--radius);
+  border:1px solid var(--border);background:var(--surface);
+  font-size:14px;color:var(--text);font-family:inherit;margin-bottom:14px;
+  outline:none;
+}
+.formInput:focus{border-color:var(--teal);}
+.formTextarea{min-height:90px;resize:vertical;line-height:1.5;}
+
 </style>
 </head>
 <body>
@@ -442,6 +451,8 @@ const ICONS = {
   scalpel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l6-6"/><path d="M9 15L20 4a1.5 1.5 0 00-2-2L7 13"/><path d="M7 13l2 2"/></svg>',
   searchSmall: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>',
+  starOutline: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  starFilled: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
   stethoscope: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3v6a4.5 4.5 0 009 0V3"/><path d="M4.5 3h-2M13.5 3h-2"/><path d="M9 13.5V16a6 6 0 006 6 6 6 0 006-6v-1.5"/><circle cx="19.5" cy="9" r="2"/><path d="M19.5 11v2.5"/></svg>',
   dumbbell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="9.5" width="3" height="5" rx="1"/><rect x="19.5" y="9.5" width="3" height="5" rx="1"/><line x1="4.5" y1="12" x2="19.5" y2="12"/><rect x="6.5" y="7" width="2.4" height="10" rx="1"/><rect x="15.1" y="7" width="2.4" height="10" rx="1"/></svg>',
   bodyFigure: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2.3"/><path d="M12 7.5v6.5"/><path d="M7.5 11l4.5-2 4.5 2"/><path d="M8.5 21l3.5-7 3.5 7"/></svg>',
@@ -1732,11 +1743,15 @@ function buildSearchIndex() {
   instabilityDiagnoses.forEach((d) => {
     idx.push({ label: d.name, moduleLabel: "OPD \u2014 instability", screenId: "opd", instabilityFlag: true });
   });
+  papersLibrary.forEach((p) => {
+    idx.push({ label: p.title, moduleLabel: "My Papers \u2014 " + p.category, screenId: "papers", paperId: p.id });
+  });
   return idx;
 }
 
 function goToSearchResult(item) {
   setScreen(item.screenId);
+  if (item.paperId) { expandedPaperId = item.paperId; papersFormMode = null; }
   if (item.screenKey && item.topicId) expandedTopicByScreen[item.screenKey] = item.topicId;
   if (item.rehabId) {
     selectedRehab = item.rehabId;
@@ -1857,6 +1872,517 @@ function applyAppearance() {
 if (darkMediaQuery) {
   darkMediaQuery.addEventListener("change", () => {
     if (appearance === "auto") applyAppearance();
+  });
+}
+
+// ---------- PAPERS LIBRARY ----------
+const defaultPaperCategories = ["Shoulder", "Spine", "Knee", "Hip", "Elbow", "Wrist & Hand", "Foot & Ankle", "Trauma (general)", "Sports Medicine", "Other"];
+let paperCategories = [];
+try {
+  paperCategories = JSON.parse(localStorage.getItem("orthoAssistPaperCategories") || "null") || [...defaultPaperCategories];
+} catch (e) {
+  paperCategories = [...defaultPaperCategories];
+}
+function savePaperCategories() {
+  localStorage.setItem("orthoAssistPaperCategories", JSON.stringify(paperCategories));
+}
+
+// IndexedDB for storing uploaded PDF blobs (too large for localStorage)
+function openPapersDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("orthoAssistFilesDB", 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore("paperFiles", { keyPath: "id" });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function savePaperFile(id, file, name) {
+  const db = await openPapersDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("paperFiles", "readwrite");
+    tx.objectStore("paperFiles").put({ id, blob: file, name: name || file.name || "document.pdf" });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+async function getPaperFile(id) {
+  const db = await openPapersDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("paperFiles", "readonly");
+    const req = tx.objectStore("paperFiles").get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function deletePaperFile(id) {
+  const db = await openPapersDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("paperFiles", "readwrite");
+    tx.objectStore("paperFiles").delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+let papersLibrary = [];
+try {
+  papersLibrary = JSON.parse(localStorage.getItem("orthoAssistPapers") || "[]");
+} catch (e) {
+  papersLibrary = [];
+}
+function savePapersLibrary() {
+  localStorage.setItem("orthoAssistPapers", JSON.stringify(papersLibrary));
+}
+
+let papersFilter = "All";
+let papersFormMode = null; // null | "add" | paperId being edited | "categories"
+let expandedPaperId = null;
+let papersSearchQuery = "";
+let papersSortMode = "newest"; // newest | oldest | az
+
+function renderPapers() {
+  screenTitle.textContent = "My Papers";
+
+  if (papersFormMode === "categories") {
+    renderCategoryManager();
+    return;
+  }
+  if (papersFormMode !== null) {
+    renderPaperForm();
+    return;
+  }
+
+  const counts = {};
+  papersLibrary.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
+
+  let html = `
+    <button class="mgmtToggle" id="addPaperBtn" style="background:var(--teal);border-color:var(--teal);color:#fff;">+ Add a paper</button>
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <button class="resetLink" id="exportPapersBtn" style="flex:1;text-align:center;border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px;text-decoration:none;">Export library</button>
+      <label class="resetLink" id="importPapersLabel" style="flex:1;text-align:center;border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px;text-decoration:none;cursor:pointer;">Import library<input type="file" id="importPapersInput" accept="application/json" style="display:none;"></label>
+    </div>
+    <div class="badgeRow" id="papersFilterRow">
+      <button class="miniBadge ${papersFilter === "All" ? "active" : ""}" data-filter="All" style="${papersFilter === "All" ? "background:var(--teal);color:#fff;" : ""}">All (${papersLibrary.length})</button>`;
+  paperCategories.forEach((c) => {
+    if (!counts[c]) return;
+    html += `<button class="miniBadge" data-filter="${c}" style="${papersFilter === c ? "background:var(--teal);color:#fff;" : ""}">${c} (${counts[c]})</button>`;
+  });
+  html += `<button class="miniBadge" id="manageCategoriesBtn" style="border:1px dashed var(--border-strong);">Edit categories</button></div>`;
+
+  html += `
+    <div class="searchBar" style="margin-bottom:10px;">
+      ${ICONS.searchSmall}
+      <input type="text" id="papersSearchInput" placeholder="Search your papers\u2026" value="${papersSearchQuery.replace(/"/g, "&quot;")}" />
+    </div>
+    <div class="badgeRow" style="margin-bottom:16px;">
+      <span style="font-size:11px;color:var(--text-3);font-weight:700;align-self:center;margin-right:2px;">SORT</span>
+      <button class="miniBadge" data-sort="newest" style="${papersSortMode === "newest" ? "background:var(--teal);color:#fff;" : ""}">Newest</button>
+      <button class="miniBadge" data-sort="oldest" style="${papersSortMode === "oldest" ? "background:var(--teal);color:#fff;" : ""}">Oldest</button>
+      <button class="miniBadge" data-sort="az" style="${papersSortMode === "az" ? "background:var(--teal);color:#fff;" : ""}">A\u2013Z</button>
+    </div>
+    <div id="papersListBox"></div>
+    <div class="disclaimer">Saved in this browser only \u2014 not synced across devices, and separate from patient data (which is never stored). Export includes attached PDFs (encoded into the file), so it's a full backup \u2014 large libraries with many PDFs may take a few seconds to prepare and produce a bigger file. AI-assisted summarisation is planned for a future update.</div>`;
+
+  app.innerHTML = html;
+  refreshPapersList();
+
+  document.getElementById("papersSearchInput").addEventListener("input", (e) => {
+    papersSearchQuery = e.target.value;
+    refreshPapersList();
+  });
+  app.querySelectorAll("[data-sort]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      papersSortMode = btn.dataset.sort;
+      renderPapers();
+    });
+  });
+
+  document.getElementById("addPaperBtn").addEventListener("click", () => {
+    papersFormMode = "add";
+    renderPapers();
+  });
+  document.getElementById("exportPapersBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("exportPapersBtn");
+    const originalLabel = btn.textContent;
+    btn.textContent = "Preparing\u2026";
+    const exportData = [];
+    for (const p of papersLibrary) {
+      const entry = { ...p };
+      if (p.hasFile) {
+        try {
+          const rec = await getPaperFile(p.id);
+          if (rec && rec.blob) {
+            entry.fileData = await blobToBase64(rec.blob);
+            entry.fileName = rec.name;
+          }
+        } catch (err) {
+          // skip attaching this file if it can't be read, rest of entry still exports
+        }
+      }
+      exportData.push(entry);
+    }
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ortho-assist-papers-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    btn.textContent = originalLabel;
+  });
+  document.getElementById("importPapersInput").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const imported = JSON.parse(reader.result);
+        if (!Array.isArray(imported)) throw new Error("not an array");
+        const existingIds = new Set(papersLibrary.map((p) => p.id));
+        let added = 0;
+        let filesRestored = 0;
+        for (const p of imported) {
+          if (!p.title) continue;
+          let id = p.id && !existingIds.has(p.id) ? p.id : "p" + Date.now() + Math.random().toString(36).slice(2, 7);
+          existingIds.add(id);
+          const entry = {
+            id,
+            title: p.title,
+            citation: p.citation || "",
+            category: paperCategories.includes(p.category) ? p.category : "Other",
+            notes: p.notes || "",
+            link: p.link || "",
+          };
+          if (p.fileData) {
+            try {
+              const blob = await fetch(p.fileData).then((r) => r.blob());
+              await savePaperFile(id, blob, p.fileName || "document.pdf");
+              entry.hasFile = true;
+              entry.fileName = p.fileName || "document.pdf";
+              filesRestored++;
+            } catch (err) {
+              // PDF restore failed for this entry; metadata still imports
+            }
+          }
+          papersLibrary.push(entry);
+          added++;
+        }
+        savePapersLibrary();
+        renderPapers();
+        alert(`Imported ${added} paper${added === 1 ? "" : "s"}${filesRestored ? `, including ${filesRestored} attached PDF${filesRestored === 1 ? "" : "s"}` : ""}.`);
+      } catch (err) {
+        alert("Couldn't read that file \u2014 make sure it's a JSON export from this app.");
+      }
+    };
+    reader.readAsText(file);
+  });
+  app.querySelectorAll("[data-filter]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      papersFilter = btn.dataset.filter;
+      renderPapers();
+    });
+  });
+  const manageBtn = document.getElementById("manageCategoriesBtn");
+  if (manageBtn) {
+    manageBtn.addEventListener("click", () => {
+      papersFormMode = "categories";
+      renderPapers();
+    });
+  }
+}
+
+function refreshPapersList() {
+  const box = document.getElementById("papersListBox");
+  if (!box) return;
+
+  let filtered = papersFilter === "All" ? papersLibrary.slice() : papersLibrary.filter((p) => p.category === papersFilter);
+  const q = papersSearchQuery.trim().toLowerCase();
+  if (q) {
+    filtered = filtered.filter((p) =>
+      p.title.toLowerCase().includes(q) ||
+      (p.citation || "").toLowerCase().includes(q) ||
+      (p.notes || "").toLowerCase().includes(q) ||
+      (p.tags || []).some((t) => t.toLowerCase().includes(q))
+    );
+  }
+  if (papersSortMode === "az") {
+    filtered.sort((a, b) => a.title.localeCompare(b.title));
+  } else if (papersSortMode === "oldest") {
+    filtered.sort((a, b) => (a.dateAdded || 0) - (b.dateAdded || 0));
+  } else {
+    filtered.sort((a, b) => (b.dateAdded || 0) - (a.dateAdded || 0));
+  }
+  filtered.sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0));
+
+  let html = "";
+  if (filtered.length === 0) {
+    html = `<div class="emptyHint">${papersLibrary.length === 0 ? "No papers saved yet \u2014 add the first one above." : "No matches."}</div>`;
+  } else {
+    filtered.forEach((p) => {
+      const open = expandedPaperId === p.id;
+      const tags = p.tags && p.tags.length ? p.tags.map((t) => `<span class="miniBadge" style="margin-right:4px;">${t}</span>`).join("") : "";
+      html += `
+        <div class="testRow" style="align-items:flex-start;padding-top:12px;padding-bottom:12px;cursor:pointer;" data-paperid="${p.id}">
+          <button class="resBtn ${p.starred ? "pos active" : "neg"}" data-starpaper="${p.id}" aria-label="Star" style="flex-shrink:0;">${p.starred ? ICONS.starFilled : ICONS.starOutline}</button>
+          <span style="display:flex;flex-direction:column;flex:1;min-width:0;">
+            ${p.title}
+            <span class="sub" style="margin-top:2px;">${p.category}${p.citation ? " \u00b7 " + p.citation : ""}</span>
+            ${tags ? `<span style="margin-top:5px;">${tags}</span>` : ""}
+          </span>
+          <span class="chev">${open ? "\u2212" : "+"}</span>
+        </div>`;
+      if (open) {
+        html += `<div class="refBox">
+          <div class="refItem"><div class="refItemBody">${p.notes ? p.notes.replace(/\n/g, "<br>") : "<i>No notes added.</i>"}</div></div>
+          ${p.link ? `<div class="refItem"><div class="refItemBody"><b>Link/DOI:</b> ${p.link}</div></div>` : ""}
+          ${p.hasFile ? `<div class="refItem"><div class="refItemBody"><b>Attached:</b> ${p.fileName || "PDF"} &nbsp; <button class="resetLink" data-openpdf="${p.id}">Open</button></div></div>` : ""}
+          <div class="refItem" style="display:flex;gap:10px;">
+            <button class="resetLink" data-copycite="${p.id}">Copy citation</button>
+            <button class="resetLink" data-editpaper="${p.id}">Edit</button>
+            <button class="resetLink" data-deletepaper="${p.id}" style="color:var(--red-text);">Delete</button>
+          </div>
+        </div>`;
+      }
+    });
+  }
+  box.innerHTML = html;
+
+  box.querySelectorAll("[data-paperid]").forEach((row) => {
+    row.addEventListener("click", () => {
+      const id = row.dataset.paperid;
+      expandedPaperId = expandedPaperId === id ? null : id;
+      refreshPapersList();
+    });
+  });
+  box.querySelectorAll("[data-editpaper]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      papersFormMode = btn.dataset.editpaper;
+      renderPapers();
+    });
+  });
+  box.querySelectorAll("[data-deletepaper]").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.deletepaper;
+      papersLibrary = papersLibrary.filter((p) => p.id !== id);
+      savePapersLibrary();
+      try { await deletePaperFile(id); } catch (err) {}
+      renderPapers();
+    });
+  });
+  box.querySelectorAll("[data-openpdf]").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const rec = await getPaperFile(btn.dataset.openpdf);
+      if (rec && rec.blob) {
+        const url = URL.createObjectURL(rec.blob);
+        window.open(url, "_blank");
+      }
+    });
+  });
+  box.querySelectorAll("[data-starpaper]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const p = papersLibrary.find((x) => x.id === btn.dataset.starpaper);
+      if (p) {
+        p.starred = !p.starred;
+        savePapersLibrary();
+        refreshPapersList();
+      }
+    });
+  });
+  box.querySelectorAll("[data-copycite]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const p = papersLibrary.find((x) => x.id === btn.dataset.copycite);
+      if (!p) return;
+      const text = p.citation ? `${p.title} \u2014 ${p.citation}` : p.title;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          const original = btn.textContent;
+          btn.textContent = "Copied!";
+          setTimeout(() => { btn.textContent = original; }, 1500);
+        });
+      }
+    });
+  });
+}
+
+function renderCategoryManager() {
+  screenTitle.textContent = "Edit categories";
+  const counts = {};
+  papersLibrary.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
+
+  let html = `<p style="font-size:13px;color:var(--text-2);margin-bottom:14px;">Rename a category by editing its text, or remove one \u2014 papers in a removed category move to \u201cOther.\u201d</p>`;
+  paperCategories.forEach((c, i) => {
+    const isOther = c === "Other";
+    html += `
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+        <input type="text" class="formInput" data-catindex="${i}" value="${c.replace(/"/g, "&quot;")}" style="margin-bottom:0;flex:1;" ${isOther ? "disabled" : ""} />
+        <button class="resBtn neg" data-delcat="${i}" aria-label="Delete category" ${isOther ? "disabled style=\"opacity:.3;\"" : ""}>${ICONS.x}</button>
+      </div>`;
+  });
+  html += `
+    <div class="sectionLabel">Add a category</div>
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="newCatInput" class="formInput" placeholder="e.g. Pediatric Ortho, Biomechanics" style="margin-bottom:0;flex:1;" />
+      <button class="resBtn pos active" id="addCatBtn" aria-label="Add category">${ICONS.check}</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="mgmtToggle" id="catDone" style="background:var(--teal);border-color:var(--teal);color:#fff;flex:1;margin:0;">Done</button>
+    </div>`;
+
+  app.innerHTML = html;
+
+  app.querySelectorAll("[data-catindex]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const i = parseInt(input.dataset.catindex, 10);
+      const oldName = paperCategories[i];
+      const newName = input.value.trim();
+      if (!newName || newName === oldName) { input.value = oldName; return; }
+      if (paperCategories.includes(newName)) {
+        alert("That category already exists.");
+        input.value = oldName;
+        return;
+      }
+      paperCategories[i] = newName;
+      papersLibrary.forEach((p) => { if (p.category === oldName) p.category = newName; });
+      savePaperCategories();
+      savePapersLibrary();
+      renderCategoryManager();
+    });
+  });
+  app.querySelectorAll("[data-delcat]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const i = parseInt(btn.dataset.delcat, 10);
+      const name = paperCategories[i];
+      const affected = counts[name] || 0;
+      if (affected > 0 && !confirm(`${affected} paper${affected === 1 ? "" : "s"} in "${name}" will move to "Other". Continue?`)) return;
+      papersLibrary.forEach((p) => { if (p.category === name) p.category = "Other"; });
+      paperCategories.splice(i, 1);
+      savePaperCategories();
+      savePapersLibrary();
+      renderCategoryManager();
+    });
+  });
+  document.getElementById("addCatBtn").addEventListener("click", () => {
+    const input = document.getElementById("newCatInput");
+    const name = input.value.trim();
+    if (!name) return;
+    if (paperCategories.includes(name)) {
+      alert("That category already exists.");
+      return;
+    }
+    paperCategories.splice(paperCategories.length - 1, 0, name); // insert before "Other"
+    savePaperCategories();
+    renderCategoryManager();
+  });
+  document.getElementById("catDone").addEventListener("click", () => {
+    papersFormMode = null;
+    renderPapers();
+  });
+}
+
+function renderPaperForm() {
+  const editing = papersFormMode !== "add" ? papersLibrary.find((p) => p.id === papersFormMode) : null;
+  screenTitle.textContent = editing ? "Edit paper" : "Add a paper";
+
+  let html = `
+    <div class="sectionLabel">Title</div>
+    <input type="text" id="pfTitle" class="formInput" placeholder="Paper title" value="${editing ? editing.title.replace(/"/g, "&quot;") : ""}" />
+    <div class="sectionLabel">Citation</div>
+    <input type="text" id="pfCitation" class="formInput" placeholder="Authors, journal, year" value="${editing ? editing.citation.replace(/"/g, "&quot;") : ""}" />
+    <div class="sectionLabel">Category</div>
+    <div class="selectGrid" id="pfCategoryGrid">`;
+  paperCategories.forEach((c) => {
+    const sel = (editing ? editing.category : "Shoulder") === c;
+    html += `<button class="optRow ${sel ? "selected" : ""}" data-catopt="${c}"><span>${c}</span><span class="check">${sel ? ICONS.check : ""}</span></button>`;
+  });
+  html += `</div>
+    <div class="sectionLabel">Key takeaway / notes</div>
+    <textarea id="pfNotes" class="formInput formTextarea" placeholder="What's useful about this paper \u2014 findings, why it changed your practice, anything worth remembering">${editing ? editing.notes || "" : ""}</textarea>
+    <div class="sectionLabel">Tags (optional)</div>
+    <input type="text" id="pfTags" class="formInput" placeholder="e.g. cadaveric study, RCT, biomechanics \u2014 comma separated" value="${editing && editing.tags ? editing.tags.join(", ") : ""}" />
+    <div class="sectionLabel">Link / DOI (optional)</div>
+    <input type="text" id="pfLink" class="formInput" placeholder="https:\u2044\u2044..." value="${editing && editing.link ? editing.link.replace(/"/g, "&quot;") : ""}" />
+    <div class="sectionLabel">Attach PDF (optional)</div>
+    <input type="file" id="pfFile" class="formInput" accept="application/pdf" />
+    ${editing && editing.hasFile ? `<p style="font-size:12px;color:var(--text-3);margin:-8px 0 14px;">Currently attached: ${editing.fileName || "PDF"}. Choosing a new file replaces it.</p>` : ""}
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button class="mgmtToggle" id="pfSave" style="background:var(--teal);border-color:var(--teal);color:#fff;flex:1;margin:0;">Save</button>
+      <button class="mgmtToggle" id="pfCancel" style="flex:1;margin:0;">Cancel</button>
+    </div>`;
+
+  app.innerHTML = html;
+  let selectedCategory = editing ? editing.category : "Shoulder";
+  document.querySelectorAll("[data-catopt]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      selectedCategory = btn.dataset.catopt;
+      document.querySelectorAll("[data-catopt]").forEach((b) => {
+        const isSel = b.dataset.catopt === selectedCategory;
+        b.classList.toggle("selected", isSel);
+        b.querySelector(".check").innerHTML = isSel ? ICONS.check : "";
+      });
+    });
+  });
+  document.getElementById("pfCancel").addEventListener("click", () => {
+    papersFormMode = null;
+    renderPapers();
+  });
+  document.getElementById("pfSave").addEventListener("click", async () => {
+    const title = document.getElementById("pfTitle").value.trim();
+    if (!title) {
+      document.getElementById("pfTitle").focus();
+      return;
+    }
+    const fileInput = document.getElementById("pfFile");
+    const chosenFile = fileInput.files[0];
+    const tagsRaw = document.getElementById("pfTags").value.trim();
+    const data = {
+      title,
+      citation: document.getElementById("pfCitation").value.trim(),
+      category: selectedCategory,
+      notes: document.getElementById("pfNotes").value.trim(),
+      tags: tagsRaw ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      link: document.getElementById("pfLink").value.trim(),
+    };
+    let targetId;
+    if (editing) {
+      targetId = editing.id;
+      Object.assign(editing, data);
+    } else {
+      targetId = "p" + Date.now();
+      data.id = targetId;
+      data.dateAdded = Date.now();
+      data.starred = false;
+      papersLibrary.push(data);
+    }
+    if (chosenFile) {
+      try {
+        await savePaperFile(targetId, chosenFile, chosenFile.name);
+        const rec = papersLibrary.find((p) => p.id === targetId);
+        rec.hasFile = true;
+        rec.fileName = chosenFile.name;
+      } catch (err) {
+        alert("Couldn't save the PDF \u2014 it may be too large for this device's storage. The rest of the entry was saved.");
+      }
+    }
+    savePapersLibrary();
+    papersFormMode = null;
+    renderPapers();
   });
 }
 
@@ -2057,6 +2583,7 @@ function render() {
   else if (currentScreen === "search") renderSearch();
   else if (currentScreen === "help") renderHelp();
   else if (currentScreen === "settings") renderSettings();
+  else if (currentScreen === "papers") renderPapers();
   else if (currentScreen === "classifications") renderTopicScreen(classificationsTopics, "classifications", "Classifications");
 }
 
@@ -2120,6 +2647,14 @@ function renderAppHome() {
         <div class="desc">Appearance (light/dark/auto/reading) and text size</div>
       </div>
       <div class="chev">${ICONS.chevRight}</div>
+    </button>
+    <button class="homeCard c-amber" id="goPapers">
+      <div class="iconBadge">${ICONS.book}</div>
+      <div style="flex:1;">
+        <div class="title">My Papers</div>
+        <div class="desc">Your own library \u2014 add papers, organised by joint/specialty</div>
+      </div>
+      <div class="chev">${ICONS.chevRight}</div>
     </button>`;
   app.innerHTML = html;
   app.querySelectorAll("[data-region]").forEach((btn) => {
@@ -2127,6 +2662,7 @@ function renderAppHome() {
   });
   document.getElementById("goHelp").addEventListener("click", () => setScreen("help"));
   document.getElementById("goSettings").addEventListener("click", () => setScreen("settings"));
+  document.getElementById("goPapers").addEventListener("click", () => { papersFormMode = null; setScreen("papers"); });
 
   const index = buildSearchIndex();
   const input = document.getElementById("homeSearchInput");

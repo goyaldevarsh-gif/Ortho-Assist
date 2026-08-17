@@ -395,3 +395,12 @@ button{font-family:inherit;cursor:pointer;}
   font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;
   background:var(--surface-2);color:var(--text-2);
 }
+
+.formInput{
+  display:block;width:100%;padding:11px 13px;border-radius:var(--radius);
+  border:1px solid var(--border);background:var(--surface);
+  font-size:14px;color:var(--text);font-family:inherit;margin-bottom:14px;
+  outline:none;
+}
+.formInput:focus{border-color:var(--teal);}
+.formTextarea{min-height:90px;resize:vertical;line-height:1.5;}
